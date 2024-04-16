@@ -1,0 +1,439 @@
+oldindex = hookmetamethod(game,"__index",function(key,value)
+    if tostring(key) == "HumanoidRootPart" and value == "Anchored" then
+        warn("Game tried banning u, ez bypass")
+        return false
+    end
+
+    return oldindex(key,value)
+end)
+
+local camera = game.Workspace.CurrentCamera
+local Camera = game.Workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local UIP = game:GetService("UserInputService")
+
+local Player = game.Players.LocalPlayer
+local Mouse = Player:GetMouse()
+_G.FovRadius = 250
+_G.FovVisible = false
+_G.FovColor = Color3.new(255,255,255)
+_G.Thickness = 1
+
+local Circle = Drawing.new("Circle")
+Circle.Radius = _G.FovRadius
+Circle.Visible = _G.FovVisible
+Circle.NumSides = 128
+Circle.Thickness = _G.Thickness
+Circle.Color = _G.FovColor
+Circle.Position = Vector2.new(UserInputService:GetMouseLocation().X,UserInputService:GetMouseLocation().Y)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    Circle.Radius = _G.FovRadius
+    Circle.Visible = _G.FovVisible
+    Circle.NumSides = 64
+    Circle.Thickness = _G.Thickness
+    Circle.Color = _G.FovColor
+    Circle.Position = Vector2.new(UserInputService:GetMouseLocation().X,UserInputService:GetMouseLocation().Y)
+end)
+
+local function GetTarget()
+    local Target = nil
+    local LowestDistance = 100000000000000
+    local Players = game.GetService(game,"Players")
+
+    for i,v in pairs(Players.GetChildren(Players)) do
+        if v.Name ~= Players.LocalPlayer.Name then
+            if v.Character ~= nil then
+                if v.Character.FindFirstChild(v.Character,"HumanoidRootPart") then
+                    if v.Character.FindFirstChild(v.Character,"Humanoid") then
+                        if v.Character.Humanoid.Health ~= 0 then
+                            local ScreenPosition,onscreen = camera.WorldToViewportPoint(camera,v.Character.HumanoidRootPart.Position)
+                            local CheckDistance = (Vector2.new(UserInputService.GetMouseLocation(UserInputService).X,UserInputService.GetMouseLocation(UserInputService).Y) - Vector2.new(ScreenPosition.X,ScreenPosition.Y)).Magnitude
+
+                            if CheckDistance < _G.FovRadius and onscreen == true then
+                                if CheckDistance < LowestDistance then
+                                    LowestDistance = CheckDistance
+                                    Target = v
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return Target
+end
+
+local FarmBoxes = false
+
+local function SafeTween(cframe,tptype)
+	local Dist = (Player.Character:GetPivot().Position - cframe.Position).Magnitude
+	local TweenService = game:GetService("TweenService")
+
+	local Tween = TweenService:Create(
+		Player.Character.HumanoidRootPart,
+		TweenInfo.new(Dist /25,Enum.EasingStyle.Linear),
+		{CFrame = cframe}
+	)
+	local Tweening = true
+
+	task.spawn(function()
+		while Tweening == true do
+			task.wait()
+
+			if (Player.Character) and Player.Character:FindFirstChild("HumanoidRootPart") then
+				Player.Character.Humanoid:ChangeState("Running")
+				Player.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+
+                if tptype == "boxes" then
+                    if FarmBoxes == false then
+                        Tween:Cancel()
+                        Tweening = false
+                    end
+                end
+			else
+				Tween:Cancel()
+				Tweening = false
+			end
+		end
+	end)
+
+	Tween:Play()
+	Tween.Completed:Wait()
+	Tweening = false
+end
+
+local function GetEquippedWeapon()
+    if (Player.Character) and Player.Character:FindFirstChild("HumanoidRootPart") then
+        for i,v in pairs(Player.Character:GetChildren()) do
+            if (v:FindFirstChildWhichIsA("Tool")) and v:FindFirstChild("Gun") then
+                print("Weapon Found!")
+                return v
+            end
+        end
+    end
+end
+
+local esp, esp_renderstep, framework = loadstring(game:HttpGet("https://pastebin.com/raw/HZb2V3yY"))();
+
+local players = game.Players;
+for _, player in pairs(players:GetPlayers()) do
+    if player == players.LocalPlayer then continue; end;
+    esp:Player(player);
+end;
+players.PlayerAdded:Connect(function(player)
+    esp:Player(player);
+end);
+players.PlayerAdded:Connect(function(player)
+    local obj = esp:GetObject(player)
+    if obj then
+        obj:Destroy();
+    end;
+end);
+
+esp.Settings.Enabled = true;
+esp.Settings.Team_Check = false
+
+esp.Settings.Maximal_Distance = 500;
+esp.Settings.Object_Maximal_Distance = 500;
+
+esp.Settings.Box.Enabled = false;
+esp.Settings.Box_Outline.Enabled = false;
+esp.Settings.Name.Enabled = false;
+
+esp.Settings.Name.Position = "Bottom";
+local library = loadstring(game:HttpGet('https://raw.githubusercontent.com/cueshut/saves/main/criminality%20paste%20ui%20library'))()
+local wnd = library.new("South Bronx >> discord.gg/south", "aspect/config/")
+local selfTab = wnd.new_tab("rbxassetid://7300477598")
+local combatTab = wnd.new_tab("rbxassetid://7300477598")
+local visualTab = wnd.new_tab("rbxassetid://7300477598")
+
+local Aimbot = false
+local SilentAim = false
+local M2Down = false
+local Flight = false
+local CFrameSpeed = false
+local CFrameSpeedAmount = 5
+local LockSpeed = 1
+
+--//
+local AimingSection = combatTab.new_section("Aiming")
+local FOVSection = combatTab.new_section("Fov")
+
+local FovCustomizer = FOVSection.new_sector('Fov Customizer', 'Left')
+local AimbotSector = AimingSection.new_sector('Aimbot', 'Left')
+local SilentAimSector = AimingSection.new_sector('Silent Aim', 'Right')
+--//
+
+--//
+local PlayerSection = selfTab.new_section("Player")
+local FarmingSection = selfTab.new_section("Farming")
+local FunSection = selfTab.new_section("Fun")
+
+local MovementSector = PlayerSection.new_sector('Movement', 'Left')
+local FarmingSector = FarmingSection.new_sector('Farming', 'Left')
+local FunSector = FunSection.new_sector('Sounds', 'Left')
+local FunOtherSector = FunSection.new_sector('OP', 'Left')
+--//
+
+--//
+local VisualsSection = visualTab.new_section("Visuals")
+local VisualsEnemy = VisualsSection.new_sector('Enemey', 'Left')
+--//
+
+local SelectedSound = "rbxassetid://142376088"
+
+FunSector.element('Dropdown', 'Sounds', {options = {"Raining Tacos","Metal Pipe Falling","Bypassed Audio Song","Nuke Siren","EarRaper","Sad Nigga Hours","German Song"}}, function(v)
+    if v.Dropdown == "Raining Tacos" then
+        SelectedSound = "rbxassetid://142376088"
+    end
+
+    if v.Dropdown == "Metal Pipe Falling" then
+        SelectedSound = "rbxassetid://6011094380"
+    end
+
+    if v.Dropdown == "Bypassed Audio Song" then
+        SelectedSound = "rbxassetid://6783714255"
+    end
+
+    if v.Dropdown == "Nuke Siren" then
+        SelectedSound = "rbxassetid://6525690145"
+    end
+
+    if v.Dropdown == "EarRaper" then
+        SelectedSound = "rbxassetid://3355609532"
+    end
+
+    if v.Dropdown == "Sad Nigga Hours" then
+        SelectedSound = "rbxassetid://6806140478"
+    end
+
+    if v.Dropdown == "German Song" then
+        SelectedSound = "rbxassetid://6950593634"
+    end
+end)
+
+FunSector.element('Button', 'Play Sound At Me', nil, function()
+    local args = {
+        [1] = "PlaySound",
+        [2] = {
+            ["PlaybackSpeed"] = 1,
+            ["SoundId"] = SelectedSound,
+            ["SoundCFrame"] = Player.Character.HumanoidRootPart,
+            ["Volume"] = 100,
+            ["RollOffMode"] = Enum.RollOffMode.Inverse,
+            ["RollOffMaxDistance"] = 1000000,
+            ["TimePosition"] = 0,
+            ["RollOffMinDistance"] = 10
+        }
+    }
+    
+    game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("ClientEffects"):FireServer(unpack(args))
+end)
+
+FunSector.element('Button', 'Play Sound At Everyone', nil, function()
+    for i,v in pairs(game.Players:GetChildren()) do
+        if (v.Character) and v.Character:FindFirstChild("HumanoidRootPart") then
+            local args = {
+                [1] = "PlaySound",
+                [2] = {
+                    ["PlaybackSpeed"] = 1,
+                    ["SoundId"] = SelectedSound,
+                    ["SoundCFrame"] = v.Character.HumanoidRootPart,
+                    ["Volume"] = 100,
+                    ["RollOffMode"] = Enum.RollOffMode.Inverse,
+                    ["RollOffMaxDistance"] = 1000000,
+                    ["TimePosition"] = 0,
+                    ["RollOffMinDistance"] = 10
+                }
+            }
+            
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("ClientEffects"):FireServer(unpack(args))
+        end
+    end
+end)
+
+FunOtherSector.element('Button', 'Server/Game Crasher (1-4 minutes)', nil, function()
+    for i,v in pairs(game.Workspace:GetDescendants()) do
+        if v:IsA("Part") or v:IsA("MeshPart") or v:IsA("BasePart") or v:IsA("UnionOperation") then
+            local args = {
+                [1] = "PlaySound",
+                [2] = {
+                    ["PlaybackSpeed"] = 1,
+                    ["SoundId"] = SelectedSound,
+                    ["SoundCFrame"] = v,
+                    ["Volume"] = 0,
+                    ["RollOffMode"] = Enum.RollOffMode.Inverse,
+                    ["RollOffMaxDistance"] = 1000000,
+                    ["TimePosition"] = 0,
+                    ["RollOffMinDistance"] = 10
+                }
+            }
+            
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("ClientEffects"):FireServer(unpack(args))
+        end
+    end
+end)
+
+FarmingSector.element('Toggle', 'Enable Box Farm', false, function(v)
+    FarmBoxes = v.Toggle
+
+    while FarmBoxes == true do
+        task.wait()
+    
+        SafeTween(CFrame.new(Vector3.new(-551.304443, -4.64145708, -89.5524979)),"boxes")
+        if FarmBoxes == false then
+            break
+        end
+    
+        local args = {
+            [1] = "Box Job"
+        }
+        
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("FetchGUI"):FireServer(unpack(args))    
+    
+        Player.Character.HumanoidRootPart.Anchored = true
+    
+        wait(0.3)
+        fireproximityprompt(workspace.PlaceHere:FindFirstChildWhichIsA("ProximityPrompt",true))
+    
+        local Crate = Player.Backpack:WaitForChild("Crate")
+    
+        wait(0.3)
+    
+        Crate.Parent = Player.Character
+        Player.Character.HumanoidRootPart.Anchored = false
+    
+        SafeTween(CFrame.new(Vector3.new(-400, -4, -72)),"boxes")
+        if FarmBoxes == false then
+            break
+        end
+    
+        --wait(1)
+        Player.Character.HumanoidRootPart.Anchored = true
+        fireproximityprompt(workspace.cratetruck2:FindFirstChildWhichIsA("ProximityPrompt",true))
+        wait(0.3)
+    
+        local args = {
+            [1] = "Box Job"
+        }
+        
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("FetchGUI"):FireServer(unpack(args)) 
+        Player.Character.HumanoidRootPart.Anchored = false
+    end
+
+    Player.Character:PivotTo(Player.Character:GetPivot() + Vector3.new(0,7,0))
+end)
+
+MovementSector.element('Toggle', 'Enable Flight', false, function(v)
+    Flight = v.Toggle
+
+    while Flight == true do
+        task.wait()
+    
+        if (Player.Character) and Player.Character:FindFirstChild("HumanoidRootPart") and FarmBoxes == false then
+            local LookAt = Camera.CFrame.Position + Camera.CFrame.LookVector * 1000
+            Player.Character.Humanoid:ChangeState("FreeFalling")
+    
+            if UIP:IsKeyDown(Enum.KeyCode.Space) then
+                Player.Character:PivotTo(CFrame.new(Player.Character:GetPivot().Position + Vector3.new(0,0.3,0),Vector3.new(LookAt.X,Player.Character.HumanoidRootPart.Position.Y,LookAt.Z)))
+            end 
+
+            if UIP:IsKeyDown(Enum.KeyCode.LeftShift) then
+                Player.Character:PivotTo(CFrame.new(Player.Character:GetPivot().Position - Vector3.new(0,0.3,0),Vector3.new(LookAt.X,Player.Character.HumanoidRootPart.Position.Y,LookAt.Z)))
+            end 
+            
+            Player.Character:PivotTo(CFrame.new(Player.Character:GetPivot().Position + Player.Character.Humanoid.MoveDirection /25 * 5,Vector3.new(LookAt.X,Player.Character.HumanoidRootPart.Position.Y,LookAt.Z)))
+            Player.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+        end
+    end
+end)
+
+MovementSector.element('Toggle', 'Enable Speed', false, function(v)
+    CFrameSpeed = v.Toggle
+
+    while CFrameSpeed == true do
+        task.wait()
+        
+        if (Player.Character) and Player.Character:FindFirstChild("Humanoid") and FarmBoxes == false then
+            Player.Character:PivotTo(Player.Character:GetPivot() + Player.Character.Humanoid.MoveDirection /20 * CFrameSpeedAmount)
+        end
+    end
+end)
+
+MovementSector.element('Slider', 'Speed Amount', {default = {min = 1, max = 5, default = 5}}, function(v)
+    _G.FovRadius = v.Slider
+end)
+
+VisualsEnemy.element('Toggle', 'Enable Boxes', false, function(v)
+    esp.Settings.Box.Enabled = v.Toggle
+end)
+
+VisualsEnemy.element('Toggle', 'Enable Name', false, function(v)
+    esp.Settings.Name.Enabled = v.Toggle
+end)
+
+VisualsEnemy.element('Toggle', 'Enable Healthbar', false, function(v)
+    esp.Settings.Healthbar.Enabled = v.Toggle
+end)
+ 
+FovCustomizer.element('Toggle', 'Show Fov', false, function(v)
+    _G.FovVisible = v.Toggle
+end)
+
+FovCustomizer.element('Slider', 'Size', {default = {min = 10, max = 500, default = 250}}, function(v)
+    _G.FovRadius = v.Slider
+ end)
+
+AimbotSector.element('Toggle', 'Enable', false, function(v)
+    Aimbot = v.Toggle
+end)
+
+AimbotSector.element('Slider', 'Lock Speed', {default = {min = 1, max = 15, default = 1}}, function(v)
+    LockSpeed = v.Slider
+end)
+
+
+SilentAimSector.element('Toggle', 'Enable', false, function(v)
+    SilentAim = v.Toggle
+end)
+
+Mouse.Button2Down:Connect(function()
+    M2Down = true
+
+    while M2Down == true and Aimbot == true do
+        task.wait()
+
+        local Target = GetTarget()
+
+        if Target then
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position,Target.Character.Head.Position),LockSpeed /15)
+        end
+    end
+end)
+
+Mouse.Button2Up:Connect(function()
+    M2Down = false
+end)
+
+old = hookmetamethod(game,"__namecall",function(self,...)
+    if SilentAim == true then
+        if (getnamecallmethod() == "Raycast") then
+            local CallingScript = getcallingscript()
+            
+            if CallingScript.Name ~= "GunScript_Local" then
+                local target = GetTarget()
+                local args = {...}
+    
+                if target then
+                    args[2] = target.Character.Head.Position - args[1]
+    
+                    return old(self,unpack(args))
+                end
+            end
+        end
+    end
+
+    return old(self,...)
+end)
