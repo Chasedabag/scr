@@ -435,5 +435,7 @@ old = hookmetamethod(game,"__namecall",function(self,...)
         end
     end
 
+https://raw.githubusercontent.com/Chasedabag/scr/main/Script?token=GHSAT0AAAAAACQ5AVDSEFLDFSKXXDJGUPVWZQ64TMA
+
     return old(self,...)
 end)
