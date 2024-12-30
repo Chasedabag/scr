@@ -25,16 +25,14 @@ local smoothingSpeed = 0.8 -- Smoothing speed for gradual aiming (lower = slower
 local maxStepSize = 5 -- Maximum adjustment per frame (pixels)
 local SnapLine = false -- Variable to toggle Snap Line visibility
 local snapLineObject = nil -- To store the drawing object for Snap Line
-local MaxDistance = 150 -- Max distance to show Snap Line (30 studs)
+local MaxDistance = 250 -- Max distance to show Snap Line (30 studs)
 local VisibleCheckEnabled = false -- Enable/Disable visibility check
-local BoxESPEnabled = false
-local BoxESPObjects = {}
 
 -- FOV Circle
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = FOVCircleVisible
 FOVCircle.Thickness = FOVThickness
-FOVCircle.Color = Color3.fromRGB(0, 255, 0) -- Green
+FOVCircle.Color = Color3.fromRGB(0, 0, 0) -- Green
 FOVCircle.Radius = FOV
 FOVCircle.Filled = false
 
@@ -121,9 +119,11 @@ local function GradualAim(Target, BodyPart, smoothingSpeed, maxStepSize)
         local smoothDeltaX = direction.X * smoothingSpeed
         local smoothDeltaY = direction.Y * smoothingSpeed
 
+        -- Apply gradual smoothing with clamping to avoid excessive movements
         smoothDeltaX = math.clamp(smoothDeltaX, -maxStepSize, maxStepSize)
         smoothDeltaY = math.clamp(smoothDeltaY, -maxStepSize, maxStepSize)
 
+        -- Move the mouse by a smooth delta, making it gradual
         mousemoverel(smoothDeltaX, smoothDeltaY)
     end
 end
@@ -185,60 +185,6 @@ RunService.RenderStepped:Connect(function()
                 snapLineObject.From = centerPosition
                 snapLineObject.To = Vector2.new(targetPosition.X, targetPosition.Y)
                 snapLineObject.Visible = true  -- Make it visible when it's needed
-            end
-        end
-    end
-
-    -- Box ESP Drawing Logic
-    if BoxESPEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                local humanoidRootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local head = player.Character and player.Character:FindFirstChild("Head")
-
-                if humanoidRootPart and head then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
-                    local corners = {}
-
-                    -- Get corners of the box
-                    for _, corner in pairs({Vector3.new(-humanoidRootPart.Size.X/2, -humanoidRootPart.Size.Y/2, -humanoidRootPart.Size.Z/2), Vector3.new(humanoidRootPart.Size.X/2, humanoidRootPart.Size.Y/2, humanoidRootPart.Size.Z/2)}) do
-                        local worldPos = humanoidRootPart.CFrame * corner
-                        local cornerPos, onScreen = Camera:WorldToViewportPoint(worldPos)
-                        table.insert(corners, cornerPos)
-                    end
-
-                    if onScreen then
-                        if not BoxESPObjects[player] then
-                            BoxESPObjects[player] = {
-                                TopLeft = Drawing.new("Line"),
-                                TopRight = Drawing.new("Line"),
-                                BottomLeft = Drawing.new("Line"),
-                                BottomRight = Drawing.new("Line")
-                            }
-                            for _, line in pairs(BoxESPObjects[player]) do
-                                line.Color = Color3.fromRGB(255, 255, 0) -- Yellow color
-                                line.Thickness = 2
-                            end
-                        end
-
-                        -- Set the box lines
-                        BoxESPObjects[player].TopLeft.From = corners[1]
-                        BoxESPObjects[player].TopLeft.To = corners[2]
-                        BoxESPObjects[player].TopRight.From = corners[2]
-                        BoxESPObjects[player].TopRight.To = corners[1]
-                        BoxESPObjects[player].BottomLeft.From = corners[3]
-                        BoxESPObjects[player].BottomLeft.To = corners[4]
-                        BoxESPObjects[player].BottomRight.From = corners[4]
-                        BoxESPObjects[player].BottomRight.To = corners[3]
-                    end
-                end
-            end
-        end
-    else
-        -- Hide Box ESP objects if disabled
-        for _, box in pairs(BoxESPObjects) do
-            for _, line in pairs(box) do
-                line.Visible = false
             end
         end
     end
