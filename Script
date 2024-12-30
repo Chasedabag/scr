@@ -23,9 +23,7 @@ local lastCheckTime = 0 -- Time to control target search frequency
 local targetSearchInterval = 0.1 -- Time in seconds
 local smoothingSpeed = 0.8 -- Smoothing speed for gradual aiming (lower = slower)
 local maxStepSize = 5 -- Maximum adjustment per frame (pixels)
-local SnapLine = false -- Variable to toggle Snap Line visibility
-local snapLineObject = nil -- To store the drawing object for Snap Line
-local MaxDistance = 250 -- Max distance to show Snap Line (30 studs)
+local MaxDistance = 250 -- Max distance for targeting
 local VisibleCheckEnabled = false -- Enable/Disable visibility check
 
 -- FOV Circle
@@ -51,12 +49,8 @@ local function IsTargetVisible(player)
         local rootPart = character.HumanoidRootPart
         local head = character:FindFirstChild("Head")
         if head then
-            local rootPartPosition = Camera:WorldToViewportPoint(rootPart.Position)
-            local headPosition = Camera:WorldToViewportPoint(head.Position)
-            
-            local _, rootPartOnScreen = Camera:WorldToViewportPoint(rootPart.Position)
-            local _, headOnScreen = Camera:WorldToViewportPoint(head.Position)
-
+            local rootPartOnScreen = Camera:WorldToViewportPoint(rootPart.Position)
+            local headOnScreen = Camera:WorldToViewportPoint(head.Position)
             return rootPartOnScreen and headOnScreen
         end
     end
@@ -82,7 +76,6 @@ local function GetClosestTarget()
             continue
         end
 
-        -- Check if target is visible
         if VisibleCheckEnabled and not IsTargetVisible(player) then
             continue
         end
@@ -92,15 +85,11 @@ local function GetClosestTarget()
             local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
             if onScreen then
                 local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
-                if distance < shortestDistance then
-                    -- Calculate the distance to the target in studs
-                    local distanceToPlayer = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                    -- Only consider targets within the MaxDistance
-                    if distanceToPlayer <= MaxDistance then
-                        shortestDistance = distance
-                        closestPlayer = player
-                        closestBodyPart = head
-                    end
+                local distanceToPlayer = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if distance < shortestDistance and distanceToPlayer <= MaxDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                    closestBodyPart = head
                 end
             end
         end
@@ -116,15 +105,15 @@ local function GradualAim(Target, BodyPart, smoothingSpeed, maxStepSize)
         local currentMousePosition = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
         local direction = targetMousePosition - currentMousePosition
-        local smoothDeltaX = direction.X * smoothingSpeed
-        local smoothDeltaY = direction.Y * smoothingSpeed
+        local magnitude = direction.Magnitude
 
-        -- Apply gradual smoothing with clamping to avoid excessive movements
-        smoothDeltaX = math.clamp(smoothDeltaX, -maxStepSize, maxStepSize)
-        smoothDeltaY = math.clamp(smoothDeltaY, -maxStepSize, maxStepSize)
-
-        -- Move the mouse by a smooth delta, making it gradual
-        mousemoverel(smoothDeltaX, smoothDeltaY)
+        if magnitude > 0 then
+            local step = Vector2.new(
+                math.clamp(direction.X * smoothingSpeed, -maxStepSize, maxStepSize),
+                math.clamp(direction.Y * smoothingSpeed, -maxStepSize, maxStepSize)
+            )
+            mousemoverel(step.X, step.Y)
+        end
     end
 end
 
@@ -138,10 +127,6 @@ UserInputService.InputEnded:Connect(function(input)
     if input.KeyCode == AimlockKey then
         AimEnabled = false
         Target = nil
-        -- Remove Snapline when aim is disabled
-        if snapLineObject then
-            snapLineObject.Visible = false
-        end
     end
 end)
 
@@ -156,36 +141,6 @@ RunService.RenderStepped:Connect(function()
 
         if Target and TargetBodyPart then
             GradualAim(Target, TargetBodyPart, smoothingSpeed, maxStepSize)
-
-            -- Remove Snap Line when locked onto a target
-            if snapLineObject then
-                snapLineObject.Visible = false
-            end
-        end
-    else
-        -- Draw Snapline if enabled and no target locked
-        if SnapLine then
-            -- Get the closest target within FOV and distance check
-            local closestPlayer, closestBodyPart = GetClosestTarget()
-
-            -- Draw Snapline if there's a target in FOV and within the max distance
-            if closestPlayer and closestBodyPart then
-                local targetPosition = Camera:WorldToViewportPoint(closestBodyPart.Position)
-                local centerPosition = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-
-                -- If Snapline object doesn't exist, create one
-                if not snapLineObject then
-                    snapLineObject = Drawing.new("Line")
-                    snapLineObject.Thickness = 2
-                    snapLineObject.Color = Color3.fromRGB(255, 0, 0)  -- Red snapline
-                    snapLineObject.Visible = false  -- Initially not visible
-                end
-
-                -- Only update the snap line when the position changes
-                snapLineObject.From = centerPosition
-                snapLineObject.To = Vector2.new(targetPosition.X, targetPosition.Y)
-                snapLineObject.Visible = true  -- Make it visible when it's needed
-            end
         end
     end
 end)
@@ -200,7 +155,6 @@ local VisualsGroupBox = VisualsTab:AddLeftGroupbox("Settings")
 local AimbotGroupBox = AimbotTab:AddLeftGroupbox("Settings")
 local SettingsGroupBox = SettingsTab:AddLeftGroupbox("Settings")
 
--- Add FOV Toggle, Visible Check, and FOV Size & Thickness to Visuals Tab
 VisualsGroupBox:AddToggle("FOVCircle", { Text = "Enable FOV Circle", Default = true }):OnChanged(function(state)
     FOVCircle.Visible = state
 end)
@@ -209,7 +163,7 @@ VisualsGroupBox:AddSlider("FOVThickness", { Text = "FOV Circle Thickness", Defau
     FOVCircle.Thickness = value
 end)
 
-VisualsGroupBox:AddSlider("FOVSize", { Text = "FOV Circle Size", Default = 0, Min = 0, Max = 200, Rounding = 1 }):OnChanged(function(value)
+VisualsGroupBox:AddSlider("FOVSize", { Text = "FOV Circle Size", Default = 100, Min = 0, Max = 200, Rounding = 1 }):OnChanged(function(value)
     FOV = value
     FOVCircle.Radius = value
 end)
@@ -218,24 +172,14 @@ VisualsGroupBox:AddToggle("VisibleCheck", { Text = "Enable Visible Check", Defau
     VisibleCheckEnabled = state
 end)
 
-VisualsGroupBox:AddToggle("Snap Line", { Text = "Snap Line", Default = false }):OnChanged(function(state)
-    SnapLine = state
-end)
-
--- Add Aimbot Toggle and Smoothness Slider
-AimbotGroupBox:AddToggle("AimEnabled", { Text = "Enable Aimbot", Default = false }):OnChanged(function(state)
-    AimEnabled = state
-end)
-
 AimbotGroupBox:AddSlider("Smoothness", { Text = "Aimbot Smoothness", Default = 0.8, Min = 0.1, Max = 1, Rounding = 2 }):OnChanged(function(value)
     smoothingSpeed = value
 end)
 
--- Apply theme and save manager configurations
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:Load()
 
--- Finalizing
 Library:Init()
+
 
