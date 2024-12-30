@@ -209,7 +209,7 @@ VisualsGroupBox:AddSlider("FOVThickness", { Text = "FOV Circle Thickness", Defau
     FOVCircle.Thickness = value
 end)
 
-VisualsGroupBox:AddSlider("FOVSize", { Text = "FOV Circle Size", Default = 100, Min = 50, Max = 300, Rounding = 1 }):OnChanged(function(value)
+VisualsGroupBox:AddSlider("FOVSize", { Text = "FOV Circle Size", Default = 0, Min = 0, Max = 200, Rounding = 1 }):OnChanged(function(value)
     FOV = value
     FOVCircle.Radius = value
 end)
